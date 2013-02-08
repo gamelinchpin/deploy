@@ -11,6 +11,7 @@ cat /dev/null | java -Xmx1G -XX:MaxPermSize=250m -XX:+UseCompressedOops \
     -Dbuild.configuation.name="$TEAMCITY_BUILDCONF_NAME" \
     -Dbuild.number="$BUILD_NUMBER" \
     -Dbuild.vcs.number="$BUILD_VCS_NUMBER" \
+    -Dbuild.properties.file="$TEAMCITY_BUILD_PROPERTIES_FILE" \
     -Dsbt.boot.directory=$SBT_BOOT_DIR \
     -Dhttp.proxyHost=devproxy.gul3.gnl\
     -Dhttp.proxyPort=3128 \
