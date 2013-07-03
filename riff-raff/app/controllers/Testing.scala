@@ -9,7 +9,7 @@ import tasks.Task
 import play.api.data.Form
 import play.api.data.Forms._
 import org.joda.time.DateTime
-import persistence.{DocumentStoreConverter, Persistence}
+import persistence.{TaskRunDocument, TaskListDocument, DocumentStoreConverter, Persistence}
 
 case class SimpleDeployDetail(uuid: UUID, time: Option[DateTime])
 
@@ -153,6 +153,30 @@ object Testing extends Controller with Logging {
     val allDeploys = Persistence.store.getDeployV2UUIDsWithoutStringUUIDs
     allDeploys.foreach(deploy => Persistence.store.addStringUUID(deploy.uuid))
     Redirect(routes.Testing.uuidList())
+  }
+
+  val WaitForPortDescription = """^to (\S+) on (\d+)$""".r
+  val BlockFirewallDescription = """^on (\S+)$""".r
+
+  def makeListOfNetworkAccesses = AuthAction { implicit request =>
+    val hostPortList = Persistence.store.getTaskLists.flatMap{ logDoc =>
+      logDoc.document match {
+        case TaskListDocument(tasks) =>
+          tasks.flatMap { detail =>
+            detail match {
+              case TaskDetail("WaitForPort", WaitForPortDescription(host, port), _, hostList) =>
+                val appName = hostList.head.apps.head.name
+                Some(s"${appName},${host},${port}")
+              case TaskDetail("BlockFirewall", BlockFirewallDescription(host), _, hostList) =>
+                val appName = hostList.head.apps.head.name
+                Some(s"${appName},${host},22")
+              case _ => None
+            }
+          }
+        case _ => Nil
+      }
+    }.toSet.toList.sorted
+    Ok("Application,Host,Port\n"+hostPortList.mkString("\n"))
   }
 
 }

@@ -258,6 +258,12 @@ class MongoDatastore(database: MongoDB, val loader: Option[ClassLoader]) extends
       deployV2LogCollection.find(criteria).toIterable.flatMap(LogDocument.fromDBO(_))
     }
 
+  override def getTaskLists(): Iterable[LogDocument] =
+    logAndSquashExceptions[Iterable[LogDocument]](Some("Retriving task detail lists"),Nil) {
+      val criteria = MongoDBObject("document._typeHint" -> "persistence.TaskListDocument")
+      deployV2LogCollection.find(criteria).toIterable.flatMap(LogDocument.fromDBO(_))
+    }
+
   override def getDeployV2UUIDs(limit: Int = 0) = logAndSquashExceptions[Iterable[SimpleDeployDetail]](None,Nil){
     val cursor = deployV2Collection.find(MongoDBObject(), MongoDBObject("_id" -> 1, "startTime" -> 1)).sort(MongoDBObject("startTime" -> -1))
     val limitedCursor = if (limit == 0) cursor else cursor.limit(limit)

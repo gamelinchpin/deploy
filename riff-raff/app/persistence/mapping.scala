@@ -115,6 +115,7 @@ trait DocumentStore {
   def getCompleteDeploysOlderThan(dateTime: DateTime): Iterable[SimpleDeployDetail] = Nil
   def findProjects(): List[String] = Nil
   def addMetaData(uuid: UUID, metaData: Map[String, String]) {}
+  def getTaskLists(): Iterable[LogDocument] = Nil
 }
 
 object DocumentStoreConverter extends Logging {

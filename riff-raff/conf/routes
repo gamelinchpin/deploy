@@ -85,6 +85,7 @@ GET     /testing/addStringUUID  controllers.Testing.transferAllUUIDs
 GET     /testing/testcharset    controllers.Testing.testcharset
 GET     /testing/deployinfo     controllers.Testing.hosts
 GET     /teamcity       controllers.Deployment.teamcity
+GET     /testing/hostPortList   controllers.Testing.makeListOfNetworkAccesses
 
 # Javascript routing
 GET     /assets/javascripts/routes          controllers.Application.javascriptRoutes
