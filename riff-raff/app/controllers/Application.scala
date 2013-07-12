@@ -91,7 +91,8 @@ object Application extends Controller with Logging {
       Routes.javascriptRouter("jsRoutes")(
         Deployment.stop,
         Deployment.projectHistory,
-        Deployment.dashboardContent
+        Deployment.dashboardContent,
+        Login.seenGc2Modal
       )
     }.as("text/javascript")
   }

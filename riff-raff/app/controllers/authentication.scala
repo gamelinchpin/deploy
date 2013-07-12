@@ -17,6 +17,8 @@ import play.api.data.Forms._
 import deployment.DeployFilter
 import play.api.libs.openid.{OpenIDError, OpenID}
 import play.api.libs.concurrent.Execution.Implicits._
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.Duration
 
 trait Identity {
   def fullName: String
@@ -77,6 +79,11 @@ object AuthenticatedRequest {
 class AuthenticatedRequest[A](val identity: Option[Identity], request: Request[A]) extends WrappedRequest(request) {
   lazy val isAuthenticated = identity.isDefined
   lazy val betaUser = identity.map(_.fullName=="Simon Hildrew").getOrElse(false)
+  lazy val seenGc2Modal = request.session.get("seenGc2Modal").map{ timeSeen =>
+    val lastSeenInstant = ISODateTimeFormat.dateTime.parseDateTime(timeSeen)
+    val lastSeenDuration = new Duration(lastSeenInstant, DateTime.now())
+    lastSeenDuration.getStandardMinutes < 120
+  }.getOrElse(false)
 }
 
 object NonAuthAction {
@@ -252,6 +259,12 @@ object Login extends Controller with Logging {
       Persistence.store.deleteAuthorisation(email)
     } )
     Redirect(routes.Login.authList())
+  }
+
+  def seenGc2Modal = AuthAction { implicit request =>
+    Ok("OK").withSession {
+      session + ("seenGc2Modal" -> ISODateTimeFormat.dateTime().print(DateTime.now()))
+    }
   }
 
 }

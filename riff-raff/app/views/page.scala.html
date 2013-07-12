@@ -1,4 +1,4 @@
-@(title: String, scripts: List[String] = Nil)(menuBar: Html)(content: Html)
+@(title: String, scripts: List[String] = Nil, showDialog: Boolean = false)(menuBar: Html)(content: Html)
 
 <!DOCTYPE html>
 
@@ -41,7 +41,24 @@
 <body>
 
 @menuBar
-
+@if(showDialog) {
+<script src='@routes.Assets.at("js/gc2-modal.min.js")'></script>
+<div id="gc2Modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="gc2ModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>GC2 and Riff-Raff</h3>
+    </div>
+    <div class="modal-body">
+        <p>There is now a shiny new installation of Riff-Raff in the new GC2 infrastructure and it would be great if you could use it.</p>
+        <p>This new installation can <strong>only</strong> see GC2 and EC2 hosts, it does not know about hosts in the legacy environments. If you still need to deploy to legacy hosts then please continue to use these Riff-Raff installations for now.</p>
+        <p>If your deploy fails or gets stuck on the new Riff-Raff then please come and chat with Simon Hildrew, who will check whether it is an issue specifically with the new installation.</p>
+    </div>
+    <div class="modal-footer">
+        <button id="setCookie" type="button" class="btn">Remind me later</button>
+        <a href="https://riffraff.gutools.co.uk/" class="btn btn-primary">Take me to SHINY</a>
+    </div>
+</div>
+}
 <div class="container-fluid">
     @content
     <div>
