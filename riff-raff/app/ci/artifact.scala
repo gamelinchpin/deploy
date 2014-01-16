@@ -17,7 +17,7 @@ import Context._
 import scala.util.{Try, Random}
 
 object `package` {
-  implicit def listOfBuild2helpers(builds: List[Build]) = new {
+  implicit def listOfBuild2helpers(builds: List[teamcity.Build]) = new {
     def buildTypes: Set[teamcity.BuildType] = builds.map(_.buildType).toSet
   }
 
@@ -31,7 +31,7 @@ object `package` {
   }
 }
 
-object ContinuousIntegration {
+object TeamCityContinuousIntegration {
   def getMetaData(projectName: String, buildId: String): Map[String, String] = {
     val build = TeamCityBuilds.builds.find { build =>
       build.buildType.fullName == projectName && build.number == buildId
@@ -60,7 +60,7 @@ object ContinuousIntegration {
 }
 
 trait BuildWatcher {
-  def newBuilds(builds: List[Build])
+  def newBuilds(builds: List[teamcity.Build])
 }
 
 trait ApiTracker[T] {
@@ -151,18 +151,18 @@ case class BuildLocatorTracker(locator: BuildLocator,
                           buildTypeTracker: ApiTracker[BuildType],
                           fullUpdatePeriod: FiniteDuration,
                           incrementalUpdatePeriod: FiniteDuration,
-                          notifyHook: List[Build] => Unit,
+                          notifyHook: List[teamcity.Build] => Unit,
                           pollingWindow: Duration,
-                          startupDelay: FiniteDuration = 0L.seconds) extends ApiTracker[Build] with Logging {
+                          startupDelay: FiniteDuration = 0L.seconds) extends ApiTracker[teamcity.Build] with Logging {
 
-  def notify(discovered: List[Build], previous: List[Build]) = if (!previous.isEmpty) notifyHook(discovered)
+  def notify(discovered: List[teamcity.Build], previous: List[teamcity.Build]) = if (!previous.isEmpty) notifyHook(discovered)
   def name = locator.toString
 
-  def fullUpdate(previous: List[Build]) = {
+  def fullUpdate(previous: List[teamcity.Build]) = {
     Await.result(getBuilds, incrementalUpdatePeriod * 20)
   }
 
-  override def incrementalUpdate(previous: List[Build]) = {
+  override def incrementalUpdate(previous: List[teamcity.Build]) = {
     Await.result(getNewBuilds(previous).map { newBuilds =>
       if (newBuilds.isEmpty)
         Result(Nil, previous, previous)
@@ -171,7 +171,7 @@ case class BuildLocatorTracker(locator: BuildLocator,
     },incrementalUpdatePeriod)
   }
 
-  def getBuilds: Future[List[Build]] = {
+  def getBuilds: Future[List[teamcity.Build]] = {
     log.debug(s"[$name] Getting builds")
     val buildTypes = buildTypeTracker.future()
     buildTypes.flatMap{ fulfilledBuildTypes =>
@@ -179,7 +179,7 @@ case class BuildLocatorTracker(locator: BuildLocator,
     }
   }
 
-  def getNewBuilds(currentBuilds:List[Build]): Future[List[Build]] = {
+  def getNewBuilds(currentBuilds:List[teamcity.Build]): Future[List[teamcity.Build]] = {
     val knownBuilds = currentBuilds.map(_.id).toSet
     val locatorWithWindow = locator.sinceDate(new DateTime().minus(pollingWindow))
     log.info(s"[$name] Querying with $locatorWithWindow")
@@ -205,7 +205,7 @@ object TeamCityBuilds extends LifecycleWithoutApp with Logging {
   def subscribe(sink: BuildWatcher) { listeners += sink }
   def unsubscribe(sink: BuildWatcher) { listeners -= sink }
 
-  def notifyNewBuilds(newBuilds: List[Build]) = {
+  def notifyNewBuilds(newBuilds: List[teamcity.Build]) = {
     log.info("Notifying listeners")
     listeners.foreach{ listener =>
       try listener.newBuilds(newBuilds)
@@ -218,11 +218,11 @@ object TeamCityBuilds extends LifecycleWithoutApp with Logging {
   private var buildTypeTracker: Option[ApiTracker[BuildType]] = None
   private var successfulBuildTracker: Option[BuildLocatorTracker] = None
 
-  def builds: List[Build] = successfulBuildTracker.map(_.get()).getOrElse(Nil)
+  def builds: List[teamcity.Build] = successfulBuildTracker.map(_.get()).getOrElse(Nil)
   def build(project: String, number: String) = builds.find(b => b.buildType.fullName == project && b.number == number)
   def buildTypes: Set[BuildType] = buildTypeTracker.map(_.get().toSet).getOrElse(Set.empty)
   def getBuildType(id: String):Option[BuildType] = buildTypes.find(_.id == id)
-  def successfulBuilds(projectName: String): List[Build] = builds.filter(_.buildType.fullName == projectName)
+  def successfulBuilds(projectName: String): List[teamcity.Build] = builds.filter(_.buildType.fullName == projectName)
   def getLastSuccessful(projectName: String): Option[String] =
     successfulBuilds(projectName).headOption.map{ latestBuild =>
       latestBuild.number

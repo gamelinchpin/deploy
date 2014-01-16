@@ -78,7 +78,7 @@ object DeployController extends Logging with LifecycleWithoutApp {
 
   def attachMetaData(record: Record) {
     val metaData = Future {
-      ContinuousIntegration.getMetaData(record.buildName, record.buildId)
+      TeamCityContinuousIntegration.getMetaData(record.buildName, record.buildId)
     }
     metaData.map { md =>
       DocumentStoreConverter.addMetaData(record.uuid, md)
@@ -291,17 +291,15 @@ object Deployment extends Controller with Logging {
   }
 
   def autoCompleteProject(term: String) = AuthAction {
-    val possibleProjects = TeamCityBuilds.buildTypes.map(_.fullName).filter(_.toLowerCase.contains(term.toLowerCase)).toList.sorted.take(10)
+    val possibleProjects = Projects.all().map(_.name).filter(_.toLowerCase.contains(term.toLowerCase)).toList.sorted.take(10)
     Ok(Json.toJson(possibleProjects))
   }
 
   def autoCompleteBuild(project: String, term: String) = AuthAction {
-    val possibleProjects = TeamCityBuilds.successfulBuilds(project).filter(
-      p => p.number.contains(term) || p.branchName.contains(term)
+    val possibleProjects = Projects.withName(project).toSeq.flatMap(_.builds).filter(
+      p => p.label.contains(term)
     ).map { build =>
-      val formatter = DateTimeFormat.forPattern("HH:mm d/M/yy")
-      val label = "%s [%s] (%s)" format (build.number, build.branchName, formatter.print(build.startDate))
-      Map("label" -> label, "value" -> build.number)
+      Map("label" -> build.label, "value" -> build.id)
     }
     Ok(Json.toJson(possibleProjects))
   }

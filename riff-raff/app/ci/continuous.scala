@@ -12,7 +12,6 @@ import scala.Some
 import persistence.{MongoFormat, MongoSerialisable, Persistence}
 import persistence.Persistence.store.getContinuousDeploymentList
 import org.joda.time.DateTime
-import teamcity.Build
 import com.mongodb.casbah.commons.MongoDBObject
 import com.mongodb.casbah.commons.Implicits._
 import akka.agent.Agent
@@ -37,9 +36,9 @@ case class ContinuousDeploymentConfig(
 ) {
   lazy val branchRE = branchMatcher.map(re => "^%s$".format(re).r).getOrElse(".*".r)
   lazy val buildFilter =
-    (build:Build) => build.buildType.fullName == projectName && branchRE.findFirstMatchIn(build.branchName).isDefined
+    (build: teamcity.Build) => build.buildType.fullName == projectName && branchRE.findFirstMatchIn(build.branchName).isDefined
 
-  def findMatchOnSuccessfulBuild(builds: List[Build]): Option[Build] = {
+  def findMatchOnSuccessfulBuild(builds: List[teamcity.Build]): Option[teamcity.Build] = {
     if (trigger == Trigger.SuccessfulBuild) {
       builds.filter(buildFilter).sortBy(-_.id).find { build =>
         val olderBuilds = TeamCityBuilds.successfulBuilds(projectName).filter(buildFilter)
@@ -109,14 +108,14 @@ object ContinuousDeployment extends LifecycleWithoutApp with Logging {
 
 class ContinuousDeployment extends BuildWatcher with Logging {
 
-  def deployParamsForSuccessfulBuilds(builds: List[Build],
+  def deployParamsForSuccessfulBuilds(builds: List[teamcity.Build],
                                     configs: Iterable[ContinuousDeploymentConfig]): Iterable[DeployParameters] = {
     configs.flatMap { config =>
       config.findMatchOnSuccessfulBuild(builds).map(build => getDeployParams(config, build))
     }
   }
 
-  def getDeployParams(config: ContinuousDeploymentConfig, build: Build): DeployParameters = {
+  def getDeployParams(config: ContinuousDeploymentConfig, build: teamcity.Build): DeployParameters = {
     DeployParameters(
       Deployer("Continuous Deployment"),
       MagentaBuild(build.buildType.fullName,build.number),
@@ -137,7 +136,7 @@ class ContinuousDeployment extends BuildWatcher with Logging {
       log.info(s"Would deploy %{params.toString}")
   }
 
-  def newBuilds(newBuilds: List[Build]) = {
+  def newBuilds(newBuilds: List[teamcity.Build]) = {
     log.info(s"New builds to consider for deployment $newBuilds")
     deployParamsForSuccessfulBuilds(newBuilds, getContinuousDeploymentList) foreach (runDeploy)
   }
