@@ -9,20 +9,18 @@ import play.api.data.Forms._
 import java.util.UUID
 import akka.actor.ActorSystem
 import magenta._
-import magenta.Build
 import akka.agent.Agent
-import akka.util.Timeout
 import scala.concurrent.duration._
 import persistence.DocumentStoreConverter
 import lifecycle.LifecycleWithoutApp
 import com.gu.management.DefaultSwitch
 import conf.AtomicSwitch
 import play.api.libs.concurrent.Execution.Implicits._
-import scala.util.{Failure, Success}
-import org.joda.time.DateTime
-import play.api.libs.json.Json
-import org.joda.time.format.DateTimeFormat
 import scala.concurrent.{Await, Future}
+import play.api.libs.json.Json
+import org.joda.time.DateTime
+import scala.util.{Failure, Success}
+import magenta.contint.Build
 
 object DeployController extends Logging with LifecycleWithoutApp {
   val sink = new MessageSink {
@@ -199,7 +197,7 @@ object Deployment extends Controller with Logging {
           .datum("default-recipe", App(form.project), Stage(form.stage), UnnamedStack)
           .map(data => RecipeName(data.value)).getOrElse(DefaultRecipe())
         val parameters = new DeployParameters(Deployer(request.identity.get.fullName),
-          Build(form.project,form.build.toString),
+          Build(form.project,form.build.toString, s"${form.project}:${form.build}"),
           Stage(form.stage),
           recipe = form.recipe.map(RecipeName).getOrElse(defaultRecipe),
           stacks = form.stacks.map(NamedStack(_)).toSeq,
@@ -237,7 +235,7 @@ object Deployment extends Controller with Logging {
   def preview(projectName: String, buildId: String, stage: String, recipe: String, hosts: String, stacks:String) = AuthAction { implicit request =>
     val hostList = hosts.split(",").toList.filterNot(_.isEmpty)
     val stackList = stacks.split(",").toList.filterNot(_.isEmpty).map(NamedStack(_))
-    val parameters = DeployParameters(Deployer(request.identity.get.fullName), Build(projectName, buildId), Stage(stage), RecipeName(recipe), stackList, hostList)
+    val parameters = DeployParameters(Deployer(request.identity.get.fullName), Build(projectName, buildId, ""), Stage(stage), RecipeName(recipe), stackList, hostList)
     val previewId = PreviewController.startPreview(parameters)
     Ok(views.html.deploy.preview(request, parameters, previewId.toString))
   }
@@ -246,7 +244,7 @@ object Deployment extends Controller with Logging {
     val previewUUID = UUID.fromString(previewId)
     val hostList = hosts.split(",").toList.filterNot(_.isEmpty)
     val parameters = DeployParameters(
-      Deployer(request.identity.get.fullName), Build(projectName, buildId), Stage(stage), RecipeName(recipe), Seq(), hostList
+      Deployer(request.identity.get.fullName), Build(projectName, buildId, ""), Stage(stage), RecipeName(recipe), Seq(), hostList
     )
     val result = PreviewController.getPreview(previewUUID, parameters)
     result match {
@@ -312,8 +310,8 @@ object Deployment extends Controller with Logging {
   def teamcity = AuthAction {
     val header = Seq("Build Type Name", "Build Number", "Build Branch", "Build Type ID", "Build ID")
     val data =
-      for(build <- TeamCityBuilds.builds.sortBy(_.buildType.fullName))
-        yield Seq(build.buildType.name,build.number,build.branchName,build.buildType.id,build.id)
+      for(build <- TeamCityBuilds.builds.sortBy(_.projectName))
+        yield Seq(build.projectName,build.id,build.label,build.id,build.id) //FIXME
 
     Ok((header :: data.toList).map(_.mkString(",")).mkString("\n")).as("text/csv")
   }

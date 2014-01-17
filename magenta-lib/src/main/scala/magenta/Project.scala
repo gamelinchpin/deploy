@@ -2,10 +2,10 @@ package magenta
 
 import json.{DeployInfoHost, DeployInfoJsonInputFile}
 import tasks.Task
-import collection.SortedSet
 import java.util.UUID
 import org.joda.time.DateTime
 import scala.math.Ordering.OptionOrdering
+import magenta.contint.Build
 
 object DeployInfo {
   def apply(): DeployInfo = DeployInfo(DeployInfoJsonInputFile(Nil,None,Map.empty), None)
@@ -158,7 +158,6 @@ case class Project(
 }
 
 case class Stage(name: String)
-case class Build(projectName:String, id:String)
 case class RecipeName(name:String)
 object DefaultRecipe {
   def apply() = RecipeName("default")

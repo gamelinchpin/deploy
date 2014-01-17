@@ -3,7 +3,7 @@ package ci
 import controllers.{Logging, DeployController}
 import lifecycle.LifecycleWithoutApp
 import java.util.UUID
-import magenta.{Build => MagentaBuild}
+import magenta.contint.{Build => MagentaBuild}
 import magenta.RecipeName
 import magenta.DeployParameters
 import magenta.Deployer
@@ -36,11 +36,12 @@ case class ContinuousDeploymentConfig(
 ) {
   lazy val branchRE = branchMatcher.map(re => "^%s$".format(re).r).getOrElse(".*".r)
   lazy val buildFilter =
-    (build: teamcity.Build) => build.buildType.fullName == projectName && branchRE.findFirstMatchIn(build.branchName).isDefined
+    (build: MagentaBuild) => build.projectName == projectName
+  //&& branchRE.findFirstMatchIn(build.branchName).isDefined
 
-  def findMatchOnSuccessfulBuild(builds: List[teamcity.Build]): Option[teamcity.Build] = {
+  def findMatchOnSuccessfulBuild(builds: List[MagentaBuild]): Option[MagentaBuild] = {
     if (trigger == Trigger.SuccessfulBuild) {
-      builds.filter(buildFilter).sortBy(-_.id).find { build =>
+      builds.filter(buildFilter).sortBy(-_.id.toInt).find { build =>
         val olderBuilds = TeamCityBuilds.successfulBuilds(projectName).filter(buildFilter)
         !olderBuilds.exists(_.id > build.id)
       }
@@ -108,17 +109,17 @@ object ContinuousDeployment extends LifecycleWithoutApp with Logging {
 
 class ContinuousDeployment extends BuildWatcher with Logging {
 
-  def deployParamsForSuccessfulBuilds(builds: List[teamcity.Build],
+  def deployParamsForSuccessfulBuilds(builds: List[MagentaBuild],
                                     configs: Iterable[ContinuousDeploymentConfig]): Iterable[DeployParameters] = {
     configs.flatMap { config =>
       config.findMatchOnSuccessfulBuild(builds).map(build => getDeployParams(config, build))
     }
   }
 
-  def getDeployParams(config: ContinuousDeploymentConfig, build: teamcity.Build): DeployParameters = {
+  def getDeployParams(config: ContinuousDeploymentConfig, build: MagentaBuild): DeployParameters = {
     DeployParameters(
       Deployer("Continuous Deployment"),
-      MagentaBuild(build.buildType.fullName,build.number),
+      build,
       Stage(config.stage),
       RecipeName(config.recipe)
     )
@@ -136,7 +137,7 @@ class ContinuousDeployment extends BuildWatcher with Logging {
       log.info(s"Would deploy %{params.toString}")
   }
 
-  def newBuilds(newBuilds: List[teamcity.Build]) = {
+  def newBuilds(newBuilds: List[MagentaBuild]) = {
     log.info(s"New builds to consider for deployment $newBuilds")
     deployParamsForSuccessfulBuilds(newBuilds, getContinuousDeploymentList) foreach (runDeploy)
   }

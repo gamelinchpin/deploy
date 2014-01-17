@@ -6,6 +6,7 @@ import controllers.Logging
 import deployment.{DeployFilter, DeployRecord, PaginationView}
 import magenta._
 import controllers.SimpleDeployDetail
+import magenta.contint.Build
 
 case class RecordConverter(uuid:UUID, startTime:DateTime, params: ParametersDocument, status:RunState.Value, messages:List[MessageWrapper] = Nil) extends Logging {
   def +(newWrapper: MessageWrapper): RecordConverter = copy(messages = messages ::: List(newWrapper))
@@ -49,7 +50,7 @@ case class DocumentConverter(deploy: DeployRecordDocument, logs: Seq[LogDocument
 
   lazy val parameters = DeployParameters(
     Deployer(deploy.parameters.deployer),
-    Build(deploy.parameters.projectName, deploy.parameters.buildId),
+    Build(deploy.parameters.projectName, deploy.parameters.buildId, ""),
     Stage(deploy.parameters.stage),
     RecipeName(deploy.parameters.recipe),
     deploy.parameters.stacks.map(NamedStack(_)),
