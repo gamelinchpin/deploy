@@ -33,35 +33,34 @@ object `package` {
 
 object TeamCityContinuousIntegration {
   def getMetaData(projectName: String, buildId: String): Map[String, String] = {
-//    val build = TeamCityBuilds.builds.find { build =>
-//      build.projectName == projectName && build.id == buildId
-//    }
-//    build.map { build =>
-//      val branch = Map("branch" -> build.branchName)
-//      val futureMap = build.detail.flatMap { detailedBuild =>
-//        Future.sequence(detailedBuild.revision.map {
-//          revision =>
-//            revision.vcsDetails.map {
-//              vcsDetails =>
-//                branch ++
-//                  Map(
-//                    VCSInfo.REVISION -> revision.version,
-//                    VCSInfo.CIURL -> vcsDetails.properties("url")
-//                  )
-//            }
-//        }.toIterable)
-//          .map(_.flatten.toMap)
-//      } recover {
-//        case _ => Map.empty[String,String]
-//      }
-//      Await.result(futureMap, 5 seconds)
-//    }.getOrElse(Map.empty[String,String])
-    Map.empty[String,String] //FIXME
+    val build = TeamCityBuilds.builds.find { build =>
+      build.buildType.fullName == projectName && build.number == buildId
+    }
+    build.map { build =>
+      val branch = Map("branch" -> build.branchName)
+      val futureMap = build.detail.flatMap { detailedBuild =>
+        Future.sequence(detailedBuild.revision.map {
+          revision =>
+            revision.vcsDetails.map {
+              vcsDetails =>
+                branch ++
+                  Map(
+                    VCSInfo.REVISION -> revision.version,
+                    VCSInfo.CIURL -> vcsDetails.properties("url")
+                  )
+            }
+        }.toIterable)
+          .map(_.flatten.toMap)
+      } recover {
+        case _ => Map.empty[String,String]
+      }
+      Await.result(futureMap, 5 seconds)
+    }.getOrElse(Map.empty[String,String])
   }
 }
 
 trait BuildWatcher {
-  def newBuilds(builds: List[magenta.contint.Build])
+  def newBuilds(builds: List[teamcity.Build])
 }
 
 trait ApiTracker[T] {
@@ -149,49 +148,47 @@ trait ApiTracker[T] {
 }
 
 case class BuildLocatorTracker(locator: BuildLocator,
-                          buildTypeTracker: ApiTracker[magenta.contint.Build],
+                          buildTypeTracker: ApiTracker[BuildType],
                           fullUpdatePeriod: FiniteDuration,
                           incrementalUpdatePeriod: FiniteDuration,
-                          notifyHook: List[magenta.contint.Build] => Unit,
+                          notifyHook: List[teamcity.Build] => Unit,
                           pollingWindow: Duration,
-                          startupDelay: FiniteDuration = 0L.seconds) extends ApiTracker[magenta.contint.Build] with Logging {
+                          startupDelay: FiniteDuration = 0L.seconds) extends ApiTracker[teamcity.Build] with Logging {
 
-  def notify(discovered: List[magenta.contint.Build], previous: List[magenta.contint.Build]) = if (!previous.isEmpty) notifyHook(discovered)
+  def notify(discovered: List[teamcity.Build], previous: List[teamcity.Build]) = if (!previous.isEmpty) notifyHook(discovered)
   def name = locator.toString
 
-  def fullUpdate(previous: List[magenta.contint.Build]) = {
+  def fullUpdate(previous: List[teamcity.Build]) = {
     Await.result(getBuilds, incrementalUpdatePeriod * 20)
   }
 
-  override def incrementalUpdate(previous: List[magenta.contint.Build]) = {
+  override def incrementalUpdate(previous: List[teamcity.Build]) = {
     Await.result(getNewBuilds(previous).map { newBuilds =>
       if (newBuilds.isEmpty)
         Result(Nil, previous, previous)
       else
-        Result(newBuilds, (previous ++ newBuilds).sortBy(-_.id.toInt), previous)
+        Result(newBuilds, (previous ++ newBuilds).sortBy(-_.id), previous)
     },incrementalUpdatePeriod)
   }
 
-  def getBuilds: Future[List[magenta.contint.Build]] = {
+  def getBuilds: Future[List[teamcity.Build]] = {
     log.debug(s"[$name] Getting builds")
     val buildTypes = buildTypeTracker.future()
-//    buildTypes.flatMap{ fulfilledBuildTypes =>
-//      Future.sequence(fulfilledBuildTypes.map(_.builds(locator, followNext = true))).map(_.flatten)
-//    }
-//    FIXME
-    buildTypes
+    buildTypes.flatMap{ fulfilledBuildTypes =>
+      Future.sequence(fulfilledBuildTypes.map(_.builds(locator, followNext = true))).map(_.flatten)
+    }
   }
 
-  def getNewBuilds(currentBuilds:List[magenta.contint.Build]): Future[List[magenta.contint.Build]] = {
+  def getNewBuilds(currentBuilds:List[teamcity.Build]): Future[List[teamcity.Build]] = {
     val knownBuilds = currentBuilds.map(_.id).toSet
     val locatorWithWindow = locator.sinceDate(new DateTime().minus(pollingWindow))
     log.info(s"[$name] Querying with $locatorWithWindow")
     val builds = BuildSummary.listWithLookup(locatorWithWindow, TeamCityBuilds.getBuildType, followNext = true)
     builds.map { builds =>
-      val newBuilds = builds.filterNot(build => knownBuilds.contains(build.id.toString))
+      val newBuilds = builds.filterNot(build => knownBuilds.contains(build.id))
       if (!newBuilds.isEmpty)
         log.info(s"[$name] Discovered builds: \n${newBuilds.mkString("\n")}")
-      newBuilds map (bs => magenta.contint.Build(bs.buildType.fullName, bs.id.toString, s"${bs.id} ${bs.branchName}"))
+      newBuilds
     }
   }
 
@@ -208,7 +205,7 @@ object TeamCityBuilds extends LifecycleWithoutApp with Logging {
   def subscribe(sink: BuildWatcher) { listeners += sink }
   def unsubscribe(sink: BuildWatcher) { listeners -= sink }
 
-  def notifyNewBuilds(newBuilds: List[magenta.contint.Build]) = {
+  def notifyNewBuilds(newBuilds: List[teamcity.Build]) = {
     log.info("Notifying listeners")
     listeners.foreach{ listener =>
       try listener.newBuilds(newBuilds)
@@ -223,14 +220,14 @@ object TeamCityBuilds extends LifecycleWithoutApp with Logging {
 
   private var successfulBuildTracker: Option[BuildLocatorTracker] = None
 
-  def builds: List[magenta.contint.Build] = successfulBuildTracker.map(_.get()).getOrElse(Nil)
-  def build(project: String, number: String) = builds.find(b => b.projectName == project && b.id == number)
+  def builds: List[teamcity.Build] = successfulBuildTracker.map(_.get()).getOrElse(Nil)
+  def build(project: String, number: String) = builds.find(b => b.buildType.fullName == project && b.number == number)
   def buildTypes: Set[BuildType] = buildTypeTracker.map(_.get().toSet).getOrElse(Set.empty)
   def getBuildType(id: String):Option[BuildType] = buildTypes.find(_.id == id)
-  def successfulBuilds(projectName: String): List[magenta.contint.Build] = builds.filter(_.projectName == projectName)
+  def successfulBuilds(projectName: String): List[teamcity.Build] = builds.filter(_.buildType.fullName == projectName)
   def getLastSuccessful(projectName: String): Option[String] =
     successfulBuilds(projectName).headOption.map{ latestBuild =>
-      latestBuild.id
+      latestBuild.number
     }
 
   def init() {
@@ -247,15 +244,9 @@ object TeamCityBuilds extends LifecycleWithoutApp with Logging {
         def startupDelay = 0L.seconds
       })
 
-      buildTracker = Some(new ApiTracker[magenta.contint.Build] {
-        def future() = for {
-          buildTypes <- buildTypeTracker.get.future()
-        } yield buildTypes map (bt => magenta.contint.Build(bt.project.name, bt.id, "")) //FIXME
-      })
-
       successfulBuildTracker = Some(new BuildLocatorTracker(
         BuildLocator.status("SUCCESS"),
-        buildTracker.get,
+        buildTypeTracker.get,
         fullUpdatePeriod,
         pollingPeriod,
         notifyNewBuilds,

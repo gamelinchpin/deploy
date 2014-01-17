@@ -36,12 +36,11 @@ case class ContinuousDeploymentConfig(
 ) {
   lazy val branchRE = branchMatcher.map(re => "^%s$".format(re).r).getOrElse(".*".r)
   lazy val buildFilter =
-    (build: MagentaBuild) => build.projectName == projectName
-  //&& branchRE.findFirstMatchIn(build.branchName).isDefined
+    (build: teamcity.Build) => build.buildType.fullName == projectName && branchRE.findFirstMatchIn(build.branchName).isDefined
 
-  def findMatchOnSuccessfulBuild(builds: List[MagentaBuild]): Option[MagentaBuild] = {
+  def findMatchOnSuccessfulBuild(builds: List[teamcity.Build]): Option[teamcity.Build] = {
     if (trigger == Trigger.SuccessfulBuild) {
-      builds.filter(buildFilter).sortBy(-_.id.toInt).find { build =>
+      builds.filter(buildFilter).sortBy(-_.id).find { build =>
         val olderBuilds = TeamCityBuilds.successfulBuilds(projectName).filter(buildFilter)
         !olderBuilds.exists(_.id > build.id)
       }
@@ -109,17 +108,17 @@ object ContinuousDeployment extends LifecycleWithoutApp with Logging {
 
 class ContinuousDeployment extends BuildWatcher with Logging {
 
-  def deployParamsForSuccessfulBuilds(builds: List[MagentaBuild],
+  def deployParamsForSuccessfulBuilds(builds: List[teamcity.Build],
                                     configs: Iterable[ContinuousDeploymentConfig]): Iterable[DeployParameters] = {
     configs.flatMap { config =>
       config.findMatchOnSuccessfulBuild(builds).map(build => getDeployParams(config, build))
     }
   }
 
-  def getDeployParams(config: ContinuousDeploymentConfig, build: MagentaBuild): DeployParameters = {
+  def getDeployParams(config: ContinuousDeploymentConfig, build: teamcity.Build): DeployParameters = {
     DeployParameters(
       Deployer("Continuous Deployment"),
-      build,
+      MagentaBuild(build.buildType.fullName,build.number, build.number),
       Stage(config.stage),
       RecipeName(config.recipe)
     )
@@ -137,7 +136,7 @@ class ContinuousDeployment extends BuildWatcher with Logging {
       log.info(s"Would deploy %{params.toString}")
   }
 
-  def newBuilds(newBuilds: List[MagentaBuild]) = {
+  def newBuilds(newBuilds: List[teamcity.Build]) = {
     log.info(s"New builds to consider for deployment $newBuilds")
     deployParamsForSuccessfulBuilds(newBuilds, getContinuousDeploymentList) foreach (runDeploy)
   }

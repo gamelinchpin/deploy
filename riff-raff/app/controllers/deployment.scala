@@ -15,6 +15,7 @@ import persistence.DocumentStoreConverter
 import lifecycle.LifecycleWithoutApp
 import com.gu.management.DefaultSwitch
 import conf.AtomicSwitch
+import org.joda.time.{Interval, DateTime}
 import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.{Await, Future}
 import play.api.libs.json.Json
@@ -310,8 +311,8 @@ object Deployment extends Controller with Logging {
   def teamcity = AuthAction {
     val header = Seq("Build Type Name", "Build Number", "Build Branch", "Build Type ID", "Build ID")
     val data =
-      for(build <- TeamCityBuilds.builds.sortBy(_.projectName))
-        yield Seq(build.projectName,build.id,build.label,build.id,build.id) //FIXME
+      for(build <- TeamCityBuilds.builds.sortBy(_.buildType.fullName))
+        yield Seq(build.buildType.name,build.number,build.branchName,build.buildType.id,build.id)
 
     Ok((header :: data.toList).map(_.mkString(",")).mkString("\n")).as("text/csv")
   }

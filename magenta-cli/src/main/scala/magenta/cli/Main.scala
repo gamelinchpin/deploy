@@ -16,6 +16,7 @@ import scalax.file.ImplicitConversions.jfile2path
 import scala.util.Try
 import magenta.teamcity.Artifact
 import java.net.URL
+import magenta.contint.{TeamCityLocator, Build}
 
 object Main extends scala.App {
 
@@ -147,7 +148,7 @@ object Main extends scala.App {
   if (parser.parse(args)) {
     try {
       withTemporaryDirectory { tmpDir =>
-        val build = Build(Config.project.get, Config.build.get)
+        val build = Build(Config.project.get, Config.build.get, Config.build.get)
         val parameters = DeployParameters(Config.deployer, build, Stage(Config.stage), Config.recipe, Nil, Config.host.toList)
         MessageBroker.deployContext(UUID.randomUUID(), parameters) {
 
@@ -159,7 +160,7 @@ object Main extends scala.App {
             MessageBroker.info("Making temporary copy of local artifact: %s" format file)
             file.copyTo(Path(tmpDir))
           } getOrElse {
-            Artifact.download(Config.teamcityUrl, tmpDir, build)
+            Artifact.download(new TeamCityLocator(Config.teamcityUrl.get.toString), tmpDir, build)
           }
 
           MessageBroker.info("Loading project file...")
