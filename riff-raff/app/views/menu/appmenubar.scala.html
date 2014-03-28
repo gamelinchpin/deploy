@@ -28,3 +28,6 @@
                 }
             </ul>
 }
+@if(request.identity.isDefined) {
+    @snippets.chargingUpdate(request)
+}

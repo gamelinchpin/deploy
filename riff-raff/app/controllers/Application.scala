@@ -191,13 +191,18 @@ object Application extends Controller with Logging {
     }
   }
 
+  def seenChargeDialog = NonAuthAction { implicit request =>
+    Ok("April Fool!").withSession(session + ("seenChargeDialog" -> "true"))
+  }
+
   def javascriptRoutes = NonAuthAction { implicit request =>
     import routes.javascript._
     Ok{
       Routes.javascriptRouter("jsRoutes")(
         Deployment.stop,
         Deployment.projectHistory,
-        Deployment.dashboardContent
+        Deployment.dashboardContent,
+        routes.javascript.Application.seenChargeDialog
       )
     }.as("text/javascript")
   }
