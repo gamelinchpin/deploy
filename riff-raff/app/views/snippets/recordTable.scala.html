@@ -1,6 +1,7 @@
 @(records: List[deployment.Record])
 @import deployment._
 @import html.helper.magenta.htmlTooltip
+@import utils.ChargingUpdate
 
 @if(records.isEmpty) {
 <div class="alert alert-warning"><strong>No deploys found.</strong></div>
@@ -17,7 +18,9 @@
         <th>Recipe</th>
         <th>Hosts</th>
         <th>Status</th>
+        @if(ChargingUpdate.visible) {
         <th>Cost</th>
+        }
     </tr>
     </thead>
     <tbody class="rowlink" data-provides="rowlink">
@@ -62,6 +65,7 @@
             }
             }
         </td>
+        @if(ChargingUpdate.visible) {
         <td class="rowlink-skip">
             @record.cost.map{ cost =>
                 @htmlTooltip(placement="left"){
@@ -71,6 +75,7 @@
                 }
             }
         </td>
+        }
     </tr>
     }
     </tbody>

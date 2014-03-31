@@ -1,10 +1,9 @@
 @(request: RequestHeader)
 @import utils.ChargingUpdate
 
-@if(ChargingUpdate.visible(request)){
+@if(ChargingUpdate.visible){
+@if(!ChargingUpdate.bannerSeen(request)){
     <script src='@routes.Assets.at("js/modal-charge-dialog-auto.min.js")'></script>
-} else {
-    <!-- charging update hidden -->
 }
     <script src='@routes.Assets.at("js/modal-charge-dialog.min.js")'></script>
     <div id="chargeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="chargeModalLabel" aria-hidden="true">
@@ -15,35 +14,49 @@
                     <h4 class="modal-title">Digital Development Cross Charging</h4>
                 </div>
                 <div class="modal-body">
-                    <p>As part of the Digital Development cross charging programme we are beginning to introduce
-                        charges for services provided to teams by Web Systems
-                        (see http://confluence.guprod.gnm/display/OWW/Cross+charging for more details). As of early
-                        next week this will be switched on for Riff-Raff and we suggest that you take action now to
-                        avoid any interruption to deploys for your project.</p>
+                    <p>As part of the Digital Development cross charging programme we are beginning to introduce charges for services provided to teams by Web Systems. As of early next week this will be switched on for Riff-Raff and we suggest that you take action now to avoid any interruption to deploys for your project.</p>
 
-                    <p>The cost of a deploy in Riff-Raff is dependant on the duration and number of tasks in a
-                        deployment. Each task that is executed and each minute of deployment duration is charged at
-                        £0.10 in PROD and £0.05 elsewhere. For example, a typical autoscaling deploy takes around 6
-                        minutes and constitutes 10 individual tasks. As a result a PROD deploy will be charged at 6+10
-                        * £0.10 = £1.60 but a CODE deploy will only be charged £0.80.</p>
+                    <p>The cost of a deploy in Riff-Raff is dependant on the duration and number of tasks in a deployment. Each task that is executed and each minute of deployment duration is charged at £0.10 in PROD and £0.05 elsewhere. For example, a typical autoscaling deploy takes around 6 minutes and constitutes 10 individual tasks. As a result a PROD deploy will be charged at 6+10 * £0.10 = £1.60 but a CODE deploy will only be charged £0.80.</p>
 
-                    <p>The easiest way of configuring this to be charged to your project is to add the appropriate cost
-                        code to your deploy.json (see below). You can do this by adding a new integer field at the top
-                        level called “costCode”. If you are doing a deploy for another team (for example, a deploy fixes
-                        a bug for a different team) you can override the cost code in the preview screen. If you are
-                        unsure what the appropriate cost code is then please get in touch with ???@@theguardian.com who
-                        will be happy to help. Finally, for one off deploys, or test projects that do not have a cost
-                        code, we are supporting Stripe for credit card payments.</p>
+                    <p>The easiest way of configuring this to be charged to your project is to add the appropriate cost code to your deploy.json (see below). You can do this by adding a new integer field at the top level called “costCode”. If you are doing a deploy for another team (for example, a deploy fixes a bug for a different team) you can override the cost code in the deploy screen. If you are unsure what the appropriate cost code is then please get in touch with daniel.sherwood@@theguardian.com who will be happy to help.</p>
 
-                    <p class="text-center"><img src='@routes.Assets.at("images/json_sample.png")'/></p>
+<pre>{
+    "costCode": 30027,
+        "packages": {
+        "prism": {
+            "type": "executable-jar",
+            ...
+        }
+        ...
+    }
+}</pre>
 
-                    <p>If you have any queries or suggestions please e-mail simon.hildrew@@theguardian.com or come and
-                        have a chat.</p>
+                    <p>For one off deploys, or test projects that do not have a cost code we will be adding support for stripe. You can use this via the web interface or by putting your card details into your deploy.json as shown below.</p>
+
+<pre>{
+    "cardDetails": {
+        "number": "1234567890123456",
+        "expiryDate": "04/14",
+        "ccv": "123"
+    },
+    "packages": {
+        "prism": {
+            "type": "executable-jar",
+            ...
+        }
+        ...
+    }
+}</pre>
+
+
+                    <p>Finally, we will also put a vending machine at the end of the web systems desk that will accept coins and notes in order to provide credit for use on Riff-Raff and other systems such as the Rotunda bar.</p>
+
+                    <p>If you have any queries or suggestions please e-mail simon.hildrew@@theguardian.com or come and have a chat.</p>
                 </div>
                 <div class="modal-footer">
-                    <a href="http://confluence.guprod.gnm/display/OWW/Cross+charging" class="btn">More info</a>
                     <button id="chargeUpdateOK" type="button" class="btn btn-primary">I understand</button>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
+}

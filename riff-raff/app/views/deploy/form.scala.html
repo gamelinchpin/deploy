@@ -1,5 +1,6 @@
 @(request: controllers.AuthenticatedRequest[AnyContent], deployForm: Form[controllers.DeployParameterForm])
 @import helper.twitterBootstrap._
+@import utils.ChargingUpdate
 
 @main("Deploy request", request, List("form-autocomplete")) {
 
@@ -20,15 +21,16 @@ helper.options(resources.LookupSelector().stages.toList),
 'id -> "stage",
 'class -> "form-control"
 )
-
+        @if(ChargingUpdate.visible) {
         <div class="clearfix" id="costCharge_field">
-            <label for="costCharge">cost code or voucher code</label>
+            <label for="costCharge">cost code or voucher code <span class="cost-badge badge">?</span></label>
             <div class="input">
                 <input type="text" id="costCharge" name="build" value="" class="form-control input-md" role="textbox">
                 <span class="help-inline"></span>
                 <span class="help-block"></span>
             </div>
         </div>
+        }
 <div class="actions">
     <button name="action" type="submit" value="preview" class="btn btn-default">Preview...</button>
     <button id="modalConfirm" name="action" type="submit" value="deploy" class="btn btn-primary">Deploy Now</button>
