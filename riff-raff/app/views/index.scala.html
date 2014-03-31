@@ -1,5 +1,6 @@
 @(request: controllers.AuthenticatedRequest[AnyContent], releaseNotes: String)
 @import conf.Configuration._
+@import utils.ChargingUpdate
 
 @main("Welcome", request) {
     
@@ -19,6 +20,8 @@
             <h3 class="panel-title">Release notes</h3>
         </div>
         <div class="panel-body">
+            @if(ChargingUpdate.visible) { <h4>1st April 2014</h4><p>Add support for cross charging deploys to teams.</p> }
+
             @docs.MarkDown.toHtml(releaseNotes)
         </div>
     </div>

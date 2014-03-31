@@ -1,7 +1,3 @@
-#### 1st April 2014
-
-Add support for cross charging deploys to teams.
-
 #### 10th February 2014
 
 Add the ability to publish messages on an AWS SNS topic.
