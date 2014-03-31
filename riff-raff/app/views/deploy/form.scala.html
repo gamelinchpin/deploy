@@ -21,6 +21,14 @@ helper.options(resources.LookupSelector().stages.toList),
 'class -> "form-control"
 )
 
+        <div class="clearfix" id="costCharge_field">
+            <label for="costCharge">cost code or voucher code</label>
+            <div class="input">
+                <input type="text" id="costCharge" name="build" value="" class="form-control input-md" role="textbox">
+                <span class="help-inline"></span>
+                <span class="help-block"></span>
+            </div>
+        </div>
 <div class="actions">
     <button name="action" type="submit" value="preview" class="btn btn-default">Preview...</button>
     <button id="modalConfirm" name="action" type="submit" value="deploy" class="btn btn-primary">Deploy Now</button>

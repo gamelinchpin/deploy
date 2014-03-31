@@ -107,6 +107,18 @@ trait Record {
     totalTasks.map{total =>
       (completedTasks * 100) / total
     }.getOrElse(0)
+
+  lazy val cost: Option[String] = {
+    if (isDone && totalTasks.isDefined) {
+      val rate = stage match {
+        case Stage("PROD") => 10
+        case _ => 5
+      }
+      val units = completedTasks + Math.ceil((lastActivityTime.getMillis - time.getMillis) / 60000)
+      val pence = units * rate
+      if (pence > 0) Some(f"£${pence/100}%.2f") else None
+    } else None
+  }
 }
 
 object DeployRecord {

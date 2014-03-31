@@ -1,7 +1,8 @@
 clickFromModalDialog = false
 
-displayDialog = ->
-  $('#chargeModal').modal()
+prepareDialog = ->
+  $('.cost-badge').click =>
+    $('#chargeModal').modal()
 
   $('#chargeUpdateOK').click =>
     jsRoutes.controllers.Application.seenChargeDialog().ajax
@@ -12,6 +13,6 @@ displayDialog = ->
 $ ->
   if (window.autoRefresh)
     window.autoRefresh.postRefresh ->
-      displayDialog()
+      prepareDialog()
   else
-    displayDialog()
+    prepareDialog()

@@ -17,6 +17,7 @@
         <th>Recipe</th>
         <th>Hosts</th>
         <th>Status</th>
+        <th>Cost</th>
     </tr>
     </thead>
     <tbody class="rowlink" data-provides="rowlink">
@@ -59,6 +60,15 @@
             }
             }
             }
+            }
+        </td>
+        <td class="rowlink-skip">
+            @record.cost.map{ cost =>
+                @htmlTooltip(placement="left"){
+                    Funding source: unknown
+                }{
+                    @cost <span class="cost-badge badge">?</span>
+                }
             }
         </td>
     </tr>

@@ -2,6 +2,10 @@
 @import utils.ChargingUpdate
 
 @if(ChargingUpdate.visible(request)){
+    <script src='@routes.Assets.at("js/modal-charge-dialog-auto.min.js")'></script>
+} else {
+    <!-- charging update hidden -->
+}
     <script src='@routes.Assets.at("js/modal-charge-dialog.min.js")'></script>
     <div id="chargeModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="chargeModalLabel" aria-hidden="true">
         <div class="modal-dialog model-lg">
@@ -43,6 +47,3 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
-} else {
-        <!-- charging update hidden -->
-}
