@@ -1,6 +1,12 @@
+seenDialog = false
+
 $ ->
   if (window.autoRefresh)
     window.autoRefresh.postRefresh ->
-      $('#chargeModal').modal()
+      if !seenDialog
+        $('#chargeModal').modal()
+        seenDialog = true
   else
-    $('#chargeModal').modal()
+    if !seenDialog
+      $('#chargeModal').modal()
+      seenDialog = true
