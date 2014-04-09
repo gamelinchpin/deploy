@@ -130,7 +130,7 @@ class Configuration(val application: String, val webappConfDirectory: String = "
   }
 
   object teamcity {
-    lazy val serverURL = configuration.getStringProperty("teamcity.serverURL").map(new URL(_))
+    lazy val serverURL = configuration.getStringProperty("teamcity.serverURL")
     lazy val useAuth = user.isDefined && password.isDefined
     lazy val user = configuration.getStringProperty("teamcity.user")
     lazy val password = configuration.getStringProperty("teamcity.password")
@@ -143,7 +143,12 @@ class Configuration(val application: String, val webappConfDirectory: String = "
   }
 
   object jenkins {
-    lazy val serverURL = Some("http://localhost:8080")
+    lazy val serverURL = configuration.getStringProperty("jenkins.serverURL")
+  }
+
+  object travis {
+    lazy val artifactBucket = configuration.getStringProperty("travis.artifactBucket")
+    lazy val repoOwner = configuration.getStringProperty("travis.repoOwner")
   }
 
   object urls {

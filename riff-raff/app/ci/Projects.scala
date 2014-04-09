@@ -12,9 +12,9 @@ import magenta.contint.Build
 import play.api.libs.json.JsArray
 
 object Projects {
-  val ciProviders = Configuration.teamcity.serverURL.map(u => new TeamCityCI(u.toString)).toSeq ++
+  val ciProviders = Configuration.teamcity.serverURL.map(u => new TeamCityCI(u)).toSeq ++
                     Configuration.jenkins.serverURL.map(new JenkinsCI(_)) ++
-                    Some(new TravisCI())
+                    Configuration.travis.repoOwner.map(new TravisCI(_))
 
   def withName(name: String): Option[ContinuousIntegrationProject] = all.find(_.name == name)
 
@@ -80,12 +80,12 @@ class JenkinsCI(serverHost: String) extends ContinuousIntegration {
   }
 }
 
-class TravisCI extends ContinuousIntegration {
+class TravisCI(owner: String) extends ContinuousIntegration {
 
   import ExecutionContext.Implicits.global //FIXME
 
   def listProjects = {
-    Await.result(WS.url("https://api.travis-ci.org/repos/guardian").get map { r =>
+    Await.result(WS.url(s"https://api.travis-ci.org/repos/$owner").get map { r =>
       r.json match {
         case JsArray(builds) => builds map { build =>
           val slug = (build \ "slug").as[String]
@@ -101,10 +101,10 @@ class TravisCI extends ContinuousIntegration {
 }
 
 object RiffRaffArtifactLocator extends ArtifactLocator {
-  lazy val locator = new CompositeArtifactLocator(Seq(
-    new TeamCityLocator(Configuration.teamcity.serverURL.get.toString),
-    new JenkinsLocator(Configuration.jenkins.serverURL.get),
-    new TravisCILocator("")
-  ))
+  lazy val locator = new CompositeArtifactLocator(
+    Configuration.teamcity.serverURL.map(new TeamCityLocator(_)).toSeq ++
+    Configuration.jenkins.serverURL.map(new JenkinsLocator(_)) ++
+    Configuration.travis.artifactBucket.map(new TravisCILocator(_))
+  )
   def location(build: Build) = locator.location(build)
 }

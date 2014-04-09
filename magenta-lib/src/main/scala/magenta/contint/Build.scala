@@ -36,5 +36,5 @@ class JenkinsLocator(serverHost: String) extends ArtifactLocator {
 
 class TravisCILocator(bucket: String) extends ArtifactLocator {
   def location(build: Build) =
-    new URI(s"https://travis-ci-artifact-test.s3.amazonaws.com/artifacts/${build.id}/target/artifacts.zip")
+    new URI(s"https://${bucket}.s3.amazonaws.com/artifacts/${build.projectName}/${build.id}/target/artifacts.zip")
 }
