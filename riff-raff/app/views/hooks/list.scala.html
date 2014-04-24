@@ -27,7 +27,7 @@
                 <td>@shortDateTime.print(config.lastEdited) by <span class="label label-default">@config.user</span></td>
                 <td>@config.projectName</td>
                 <td>@config.stage</td>
-                <td>@config.url</td>
+                <td>@if(!request.betaUser) { @config.url } else { @config.url.replace("r0ckyh0rr0r", "********") }</td>
                 <td>@config.enabled</td>
                 <td>
                     <a class="btn btn-default btn-xs" href="@routes.Hooks.edit(config.id.toString)"><i class="glyphicon glyphicon-edit"></i> Edit</a>

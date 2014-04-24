@@ -26,7 +26,7 @@
                     <td>@org.joda.time.format.DateTimeFormat.shortDateTime.print(key.created)</td>
                     <td><span class="label label-default">@key.issuedBy</span></td>
                     <td>@key.application</td>
-                    <td>@key.key</td>
+                    <td>@if(!request.betaUser) { @key.key } else { <strong><em>key hidden</em></strong> }</td>
                     <td>@key.lastUsed.map(org.joda.time.format.DateTimeFormat.shortDateTime.print).getOrElse("never")</td>
                     <td>@key.totalCalls</td>
                     <td>
